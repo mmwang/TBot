@@ -45,19 +45,55 @@ class AppDelegate(NSObject):
         NSEvent.addGlobalMonitorForEventsMatchingMask_handler_(NSKeyDownMask, handler)
 
 cmd = "osascript -e 'tell application \"System Events\" to keystroke \"%s\"'"
-
-
-def isEmpty(rgb):
-	return rgb[0] == rgb[1]
-
-def getNextPiece(rgb):
-	#TODO: write this function. Return number corresponding to piece
-
 topLeftCenterx = 159
 topLeftCentery = 82
 squareWidth = 36
 nextBoxx = 576
 nextBoxy = 165
+sColor = (148, 238, 58)
+tColor = (231, 75, 200)
+fatLColor = (67, 123, 254)
+squareColor = (254, 216, 58)
+zColor = (254, 66, 91)
+tallLColor = (254, 155, 34)
+eyeColor = (43, 208, 254)
+colorThreshold = 3000
+
+def norm(v1, v2):
+	return (v1[0] - v2[0]) ** 2 + (v1[1] - v2[1]) ** 2 + (v1[2] - v2[2]) ** 2
+def isEmpty(rgb):
+	return rgb[0] == rgb[1]
+def isS(rgb):
+	return norm(sColor, rgb) < colorThreshold
+def isT(rgb):
+        return norm(tColor, rgb) < colorThreshold
+def isFatL(rgb):
+        return norm(fatLColor, rgb) < colorThreshold
+def isSquare(rgb):
+        return norm(squareColor, rgb) < colorThreshold
+def isZ(rgb):
+        return norm(zColor, rgb) < colorThreshold
+def isTallL(rgb):
+        return norm(tallLColor, rgb) < colorThreshold
+def isEye(rgb):
+        return norm(eyeColor, rgb) < colorThreshold
+
+def getNextPiece(rgb):
+	if isS(rgb):
+		return 0
+	if isT(rgb):
+		return 1
+	if isFatL(rgb):
+		return 2
+	if isSquare(rgb):
+		return 3
+	if isZ(rgb):
+		return 4
+	if isTallL(rgb):
+		return 5
+	if isEye(rgb):
+		return 6
+
 
 def handler(event):
     try:
@@ -77,7 +113,8 @@ def handler(event):
 					centery = topLeftCentery + (19 - j) * squareWidth
 					if(not(isEmpty(sp.pixel(centerx, centery)))):
 						grid[19 - j][i] = True
-			
+			nextPiece = getNextPiece(sp.pixel(nextBoxx, nextBoxy))
+			print nextPiece
 
     except ( KeyboardInterrupt ) as e:
         print 'Ending', e
