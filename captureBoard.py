@@ -39,7 +39,7 @@ if __name__ == '__main__':
 
     sp = ScreenPixel()
 
-    region = CG.CGRectMake(242, 200, 400, 432)
+    region = CG.CGRectMake(242, 440, 400, 400)
     sp.capture(region=region)
 
     print sp.width, sp.height

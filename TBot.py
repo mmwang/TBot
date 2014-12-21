@@ -60,7 +60,7 @@ lColor = (254, 155, 34)
 eyeColor = (43, 208, 254)
 delay = 0.035
 sp = ScreenPixel()
-region = CG.CGRectMake(242, 200, 400, 432)
+region = CG.CGRectMake(242, 440, 400, 400)
 
 
 def norm(v1, v2):
@@ -87,7 +87,7 @@ def calculateScore(colSums):
 	"""
 	sum = 0
 	for i in range(1, 9):
-		sum += abs(colSums[i] - colSums[i - 1])
+		sum += (colSums[i] - colSums[i - 1]) ** 2
 	return sum
 
 def scoreBoard(piece, pos, orient, colSums):
@@ -289,7 +289,7 @@ def executeMovement(piece, pos, orient):
 	if pos == 4 and piece == 6:
 		sleep(0.3)
 	else:
-		sleep(0.05)
+		sleep(0.07)
 
 def printPiece(piece):
 	if piece == 0:
