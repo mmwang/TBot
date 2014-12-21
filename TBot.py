@@ -3,6 +3,7 @@ from Foundation import *
 from PyObjCTools import AppHelper
 from time import sleep
 import Quartz.CoreGraphics as CG
+import Quartz
 import struct
 import os
 import keycode
@@ -44,7 +45,7 @@ class AppDelegate(NSObject):
     def applicationDidFinishLaunching_(self, aNotification):
         NSEvent.addGlobalMonitorForEventsMatchingMask_handler_(NSKeyDownMask, handler)
 
-cmd = "osascript -e 'tell application \"System Events\" to keystroke \"%s\"'"
+cmd = "osascript -e 'tell application \"System Events\" to key code %s'"
 topLeftCenterx = 159
 topLeftCentery = 82
 squareWidth = 36
@@ -52,48 +53,259 @@ nextBoxx = 576
 nextBoxy = 165
 sColor = (148, 238, 58)
 tColor = (231, 75, 200)
-fatLColor = (67, 123, 254)
+jColor = (67, 123, 254)
 squareColor = (254, 216, 58)
 zColor = (254, 66, 91)
-tallLColor = (254, 155, 34)
+lColor = (254, 155, 34)
 eyeColor = (43, 208, 254)
-colorThreshold = 3000
+delay = 0.035
+sp = ScreenPixel()
+region = CG.CGRectMake(242, 200, 400, 432)
+
 
 def norm(v1, v2):
 	return (v1[0] - v2[0]) ** 2 + (v1[1] - v2[1]) ** 2 + (v1[2] - v2[2]) ** 2
+
 def isEmpty(rgb):
 	return rgb[0] == rgb[1]
-def isS(rgb):
-	return norm(sColor, rgb) < colorThreshold
-def isT(rgb):
-        return norm(tColor, rgb) < colorThreshold
-def isFatL(rgb):
-        return norm(fatLColor, rgb) < colorThreshold
-def isSquare(rgb):
-        return norm(squareColor, rgb) < colorThreshold
-def isZ(rgb):
-        return norm(zColor, rgb) < colorThreshold
-def isTallL(rgb):
-        return norm(tallLColor, rgb) < colorThreshold
-def isEye(rgb):
-        return norm(eyeColor, rgb) < colorThreshold
 
-def getNextPiece(rgb):
-	if isS(rgb):
-		return 0
-	if isT(rgb):
-		return 1
-	if isFatL(rgb):
-		return 2
-	if isSquare(rgb):
-		return 3
-	if isZ(rgb):
-		return 4
-	if isTallL(rgb):
-		return 5
-	if isEye(rgb):
-		return 6
+def getPiece(rgb):
+	colors = [0 for i in range(7)]
+	colors[0] = norm(sColor, rgb)
+	colors[1] = norm(tColor, rgb)
+	colors[2] = norm(jColor, rgb)
+	colors[3] = norm(squareColor, rgb)
+	colors[4] = norm(zColor, rgb)
+	colors[5] = norm(lColor, rgb)
+	colors[6] = norm(eyeColor, rgb)
+	return colors.index(min(colors))
 
+def calculateScore(colSums):
+	"""calculate score here
+		factors:
+		1) bumpiness
+	"""
+	sum = 0
+	for i in range(1, 9):
+		sum += abs(colSums[i] - colSums[i - 1])
+	return sum
+
+def scoreBoard(piece, pos, orient, colSums):
+	"""orient:
+		0 for original
+		1 for 90 clockwise (press up)
+		2 for 180 (up twice)
+		3 for -90 (press z)
+	"""
+	if piece == 0:
+		if orient == 0:
+			if colSums[pos] != colSums[pos + 1] or colSums[pos] != colSums[pos + 2] - 1:
+				return sys.maxint
+			colSums[pos] += 1
+			colSums[pos + 1] += 2
+			colSums[pos + 2] += 1
+		elif orient == 1:
+			if colSums[pos] != colSums[pos + 1] + 1:
+				return sys.maxint
+			colSums[pos] += 2
+			colSums[pos + 1] += 2
+	elif piece == 1:
+		if orient == 0:
+			if colSums[pos] != colSums[pos + 1] or colSums[pos] != colSums[pos + 2]:
+				return sys.maxint
+			colSums[pos] += 1
+			colSums[pos + 1] += 2
+			colSums[pos + 2] += 1
+		elif orient == 1:
+			if colSums[pos] != colSums[pos + 1] - 1:
+				return sys.maxint
+			colSums[pos] += 3
+			colSums[pos + 1] += 1
+		elif orient == 2:
+			if colSums[pos] != colSums[pos + 2] or colSums[pos] != colSums[pos + 1] + 1:
+				return sys.maxint
+			colSums[pos] += 1
+			colSums[pos + 1] += 2
+			colSums[pos + 2] += 1
+		elif orient == 3:
+			if colSums[pos] != colSums[pos + 1] + 1:
+				return sys.maxint
+			colSums[pos] += 1
+			colSums[pos + 1] += 3
+	elif piece == 2:
+		if orient == 0:
+			if colSums[pos] != colSums[pos + 1] or colSums[pos] != colSums[pos + 2]:
+				return sys.maxint
+			colSums[pos] += 2
+			colSums[pos + 1] += 1
+			colSums[pos + 2] += 1
+		elif orient == 1:
+			if colSums[pos] != colSums[pos + 1] - 2:
+				return sys.maxint
+			colSums[pos] += 3
+			colSums[pos + 1] += 1
+		elif orient == 2:
+			if colSums[pos] != colSums[pos + 1] or colSums[pos] != colSums[pos + 2] + 1:
+				return sys.maxint
+			colSums[pos] += 1
+			colSums[pos + 1] += 1
+			colSums[pos + 2] += 2
+		elif orient == 3:
+			if colSums[pos] != colSums[pos + 1]:
+				return sys.maxint
+			colSums[pos] += 1
+			colSums[pos + 1] += 3
+	elif piece == 3:
+		if colSums[pos] != colSums[pos + 1]:
+			return sys.maxint
+		colSums[pos] += 2
+		colSums[pos + 1] += 2
+	elif piece == 4:
+		if orient == 0:
+			if colSums[pos] != colSums[pos + 1] + 1 or colSums[pos] != colSums[pos + 2] + 1:
+				return sys.maxint
+			colSums[pos] += 1
+			colSums[pos + 1] += 2
+			colSums[pos + 2] += 1
+		elif orient == 1:
+			if colSums[pos] != colSums[pos + 1] - 1:
+				return sys.maxint
+			colSums[pos] += 2
+			colSums[pos + 1] += 2
+	elif piece == 5:
+		if orient == 0:
+			if colSums[pos] != colSums[pos + 1] or colSums[pos] != colSums[pos + 2]:
+                        	return sys.maxint
+			colSums[pos] += 1
+			colSums[pos + 1] += 1
+			colSums[pos + 2] += 2
+		elif orient == 1:
+			if colSums[pos] != colSums[pos + 1]:
+                        	return sys.maxint
+			colSums[pos] += 3
+			colSums[pos + 1] += 1
+		elif orient == 2:
+			if colSums[pos] != colSums[pos + 1] - 1 or colSums[pos] != colSums[pos + 2] - 1:
+                        	return sys.maxint
+			colSums[pos] += 2
+			colSums[pos + 1] += 1
+			colSums[pos + 2] += 1
+		elif orient == 3:
+			if colSums[pos] != colSums[pos + 1] + 2:
+                       		return sys.maxint
+			colSums[pos] += 1
+			colSums[pos + 1] += 3
+	elif piece == 6:
+		if orient == 0:
+			if colSums[pos] != colSums[pos + 1] or colSums[pos] != colSums[pos + 2] or colSums[pos] != colSums[pos + 3]:
+				return sys.maxint
+			colSums[pos] += 1
+			colSums[pos + 1] += 1
+			colSums[pos + 2] += 1
+			colSums[pos + 3] += 1
+		elif orient == 1:
+			colSums[pos] += 4
+	
+	return calculateScore(colSums)
+	
+def calculateBestPlacement(piece, grid):
+	"""for each orient
+		for each pos
+			calculate board value
+	"""
+	colSums = [0 for i in range(9)]
+	for i in range(9):
+		colSums[i] = sum(grid[i])
+	if min(colSums) >= 4 and piece == 6:
+		return (9, 1, 0)
+	orange = 4
+	prange = [0, 0]
+	prange[0] = 7
+	prange[1] = 8
+	if piece == 0 or piece == 4:
+		orange = 2
+	if piece == 3:
+		orange = 1
+		prange[0] = 8
+	elif piece == 6:
+		orange = 2
+		prange[0] = 6
+		prange[1] = 9
+	bestInfo = (0, 0, sys.maxint) # pos, orient, score
+	for orient in range(orange):
+		for pos in range(prange[orient % 2]):
+			temp = [colSums[i] for i in range(9)]
+			currScore = scoreBoard(piece, pos, orient, temp)
+			if(currScore < bestInfo[2]):
+				bestInfo = (pos, orient, currScore)
+	return bestInfo
+
+def pressNTimes(which, N):
+	kCode = 123
+	if which == "right":
+		kCode = 124
+	elif which == "up":
+		kCode = 126
+	elif which == "down":
+		kCode = 125
+	elif which == "space":
+		kCode = 49
+	elif which == "z":
+		kCode = 6
+	elif which == "c":
+		kCode = 8
+	for i in range(N):
+		keyDownEvt = Quartz.CGEventCreateKeyboardEvent(None, kCode, True)
+		keyUpEvt = Quartz.CGEventCreateKeyboardEvent(None, kCode, False)
+		Quartz.CGEventPost(Quartz.kCGHIDEventTap, keyDownEvt)
+		sleep(0.045)
+		Quartz.CGEventPost(Quartz.kCGHIDEventTap, keyUpEvt)
+		sleep(0.05)
+
+def executeMovement(piece, pos, orient):
+	if orient != 1:
+		if piece == 3:
+			pos -= 4
+		else:
+			pos -= 3
+	else:
+		if piece == 6:
+			pos -= 5
+		else:
+			pos -= 4
+	if orient > 0:
+		whichOrient = "up"
+		N = 1
+		if orient == 2:
+			N = 2
+		if orient == 3:
+			whichOrient = "z"
+		pressNTimes(whichOrient, N)
+	if pos > 0:
+		pressNTimes("right", pos)
+	elif pos < 0:
+		pressNTimes("left", -pos)
+	pressNTimes("space", 1)
+	if pos == 4 and piece == 6:
+		sleep(0.3)
+	else:
+		sleep(0.05)
+
+def printPiece(piece):
+	if piece == 0:
+		print "S-piece"
+	elif piece == 1:
+		print "T-piece"
+	elif piece == 2:
+		print "J-piece"
+	elif piece == 3:
+		print "Square-piece"
+	elif piece == 4:
+		print "Z-piece"
+	elif piece == 5:
+		print "L-piece"
+	else:
+		print "Eyepiece"
 
 def handler(event):
     try:
@@ -102,19 +314,24 @@ def handler(event):
 		if app.isActive() and app.localizedName() != "Google Chrome":
 			return
 	if event.type() == NSKeyDown and keycode.tostring(event.keyCode()) in string.printable:
-		if event.keyCode() == 36:
-			sp = ScreenPixel()
-			region = CG.CGRectMake(242, 200, 400, 432)
+		if event.keyCode() == 48:
 			sp.capture(region=region)
-			grid = [[False for i in range(10)] for i in range(20)]
-			for i in range(10):
-				centerx = topLeftCenterx + i * squareWidth
-				for j in range(20):
-					centery = topLeftCentery + (19 - j) * squareWidth
-					if(not(isEmpty(sp.pixel(centerx, centery)))):
-						grid[19 - j][i] = True
-			nextPiece = getNextPiece(sp.pixel(nextBoxx, nextBoxy))
-			print nextPiece
+			currPiece = getPiece(sp.pixel(topLeftCenterx + 4 * squareWidth, topLeftCentery))
+			for i in range(3):
+				grid = [[False for i in range(19)] for i in range(9)]
+				for i in range(9):
+					centerx = topLeftCenterx + i * squareWidth
+					for j in range(19):
+						centery = topLeftCentery + (19 - j) * squareWidth
+						if(not(isEmpty(sp.pixel(centerx, centery)))):
+							grid[i][j] = True
+				print sp.pixel(nextBoxx, nextBoxy)
+				nextPiece = getPiece(sp.pixel(nextBoxx, nextBoxy))
+				movementInfo = calculateBestPlacement(currPiece, grid)
+				executeMovement(currPiece, movementInfo[0], movementInfo[1])
+				sp.capture(region=region)
+				currPiece = nextPiece
+			print ""
 
     except ( KeyboardInterrupt ) as e:
         print 'Ending', e
