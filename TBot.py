@@ -61,7 +61,8 @@ eyeColor = (43, 208, 254)
 delay = 0.035
 sp = ScreenPixel()
 region = CG.CGRectMake(242, 440, 400, 400)
-
+orange = [2, 4, 4, 1, 2, 4, 2]
+prange = [[7, 8], [7, 8], [7, 8], [8, 8], [7, 8], [7, 8], [6, 9]]
 
 def norm(v1, v2):
 	return (v1[0] - v2[0]) ** 2 + (v1[1] - v2[1]) ** 2 + (v1[2] - v2[2]) ** 2
@@ -208,32 +209,24 @@ def scoreBoard(piece, pos, orient, colSums):
 	
 	return calculateScore(colSums)
 	
-def calculateBestPlacement(piece, grid):
+def calculateBestPlacement(piece, nextPiece, colSums):
 	"""for each orient
 		for each pos
 			calculate board value
 	"""
-	colSums = [0 for i in range(9)]
-	for i in range(9):
-		colSums[i] = sum(grid[i])
-	orange = 4
-	prange = [7, 8]
-	if piece == 0 or piece == 4:
-		orange = 2
-	if piece == 3:
-		orange = 1
-		prange[0] = 8
-	elif piece == 6:
-		orange = 2
-		prange[0] = 6
-		prange[1] = 9
+	if piece == 6:
+		nextPiece = None
+	#colSums = [sum(grid[i]) for i in range(9)]
 	bestInfo = (0, 0, sys.maxint) # pos, orient, score
 	initialScore = calculateScore(colSums)
-	for orient in range(orange):
-		for pos in range(prange[orient % 2]):
+	for orient in range(orange[piece]):
+		for pos in range(prange[piece][orient % 2]):
 			temp = [colSums[i] for i in range(9)]
 			currScore = scoreBoard(piece, pos, orient, temp)
-			if(currScore < bestInfo[2]):
+			if currScore != sys.maxint and nextPiece != None:
+				nextInfo = calculateBestPlacement(nextPiece, None, temp)
+				currScore = nextInfo[2]
+			if currScore < bestInfo[2]:
 				bestInfo = (pos, orient, currScore)
 	if piece == 6 and min(colSums) >= 4 and initialScore - bestInfo[2] < 16:
 		return (9, 1, 0)
@@ -318,7 +311,7 @@ def handler(event):
 			currPiece = getPiece(sp.pixel(topLeftCenterx + 4 * squareWidth, topLeftCentery))
 			holdPiece = None
 			isFirstHold = True
-			for i in range(15):
+			for i in range(100):
 				grid = [[False for i in range(19)] for i in range(9)]
 				for i in range(9):
 					centerx = topLeftCenterx + i * squareWidth
@@ -326,11 +319,16 @@ def handler(event):
 						centery = topLeftCentery + (19 - j) * squareWidth
 						if(not(isEmpty(sp.pixel(centerx, centery)))):
 							grid[i][j] = True
+				colSums = [sum(grid[i]) for i in range(9)]
 				nextPiece = getPiece(sp.pixel(nextBoxx, nextBoxy))
 				if isFirstHold:
 					holdPiece = nextPiece
-				currMovementInfo = calculateBestPlacement(currPiece, grid)
-				holdMovementInfo = calculateBestPlacement(holdPiece, grid)
+				currMovementInfo = calculateBestPlacement(currPiece, nextPiece, colSums)
+				holdMovementInfo = None
+				if isFirstHold:
+					holdMovementInfo = calculateBestPlacement(holdPiece, None, colSums)
+				else:
+					holdMovementInfo = calculateBestPlacement(holdPiece, nextPiece, colSums)
 				if currMovementInfo[2] <= holdMovementInfo[2]:
 					executeMovement(currPiece, currMovementInfo[0], currMovementInfo[1])
 				else:
