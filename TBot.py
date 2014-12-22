@@ -311,8 +311,8 @@ def handler(event):
 			currPiece = getPiece(sp.pixel(topLeftCenterx + 4 * squareWidth, topLeftCentery))
 			holdPiece = None
 			isFirstHold = True
-			for i in range(100):
-				grid = [[False for i in range(19)] for i in range(9)]
+			for x in range(100):
+				grid = [[False for i in range(19)] for j in range(9)]
 				for i in range(9):
 					centerx = topLeftCenterx + i * squareWidth
 					for j in range(19):
