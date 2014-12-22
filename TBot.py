@@ -216,12 +216,8 @@ def calculateBestPlacement(piece, grid):
 	colSums = [0 for i in range(9)]
 	for i in range(9):
 		colSums[i] = sum(grid[i])
-	if min(colSums) >= 4 and piece == 6:
-		return (9, 1, 0)
 	orange = 4
-	prange = [0, 0]
-	prange[0] = 7
-	prange[1] = 8
+	prange = [7, 8]
 	if piece == 0 or piece == 4:
 		orange = 2
 	if piece == 3:
@@ -232,12 +228,15 @@ def calculateBestPlacement(piece, grid):
 		prange[0] = 6
 		prange[1] = 9
 	bestInfo = (0, 0, sys.maxint) # pos, orient, score
+	initialScore = calculateScore(colSums)
 	for orient in range(orange):
 		for pos in range(prange[orient % 2]):
 			temp = [colSums[i] for i in range(9)]
 			currScore = scoreBoard(piece, pos, orient, temp)
 			if(currScore < bestInfo[2]):
 				bestInfo = (pos, orient, currScore)
+	if piece == 6 and min(colSums) >= 4 and initialScore - bestInfo[2] < 16:
+		return (9, 1, 0)
 	return bestInfo
 
 def pressNTimes(which, N):
