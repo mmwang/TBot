@@ -317,7 +317,9 @@ def handler(event):
 		if event.keyCode() == 48:
 			sp.capture(region=region)
 			currPiece = getPiece(sp.pixel(topLeftCenterx + 4 * squareWidth, topLeftCentery))
-			for i in range(3):
+			holdPiece = None
+			isFirstHold = True
+			for i in range(15):
 				grid = [[False for i in range(19)] for i in range(9)]
 				for i in range(9):
 					centerx = topLeftCenterx + i * squareWidth
@@ -325,13 +327,24 @@ def handler(event):
 						centery = topLeftCentery + (19 - j) * squareWidth
 						if(not(isEmpty(sp.pixel(centerx, centery)))):
 							grid[i][j] = True
-				print sp.pixel(nextBoxx, nextBoxy)
 				nextPiece = getPiece(sp.pixel(nextBoxx, nextBoxy))
-				movementInfo = calculateBestPlacement(currPiece, grid)
-				executeMovement(currPiece, movementInfo[0], movementInfo[1])
+				if isFirstHold:
+					holdPiece = nextPiece
+				currMovementInfo = calculateBestPlacement(currPiece, grid)
+				holdMovementInfo = calculateBestPlacement(holdPiece, grid)
+				if currMovementInfo[2] <= holdMovementInfo[2]:
+					executeMovement(currPiece, currMovementInfo[0], currMovementInfo[1])
+				else:
+					pressNTimes("c", 1)
+					if isFirstHold:
+						sleep(0.07)
+						sp.capture(region=region)
+						nextPiece = getPiece(sp.pixel(nextBoxx, nextBoxy))
+						isFirstHold = False
+					executeMovement(holdPiece, holdMovementInfo[0], holdMovementInfo[1])
+					holdPiece = currPiece
 				sp.capture(region=region)
 				currPiece = nextPiece
-			print ""
 
     except ( KeyboardInterrupt ) as e:
         print 'Ending', e
