@@ -46,6 +46,7 @@ class AppDelegate(NSObject):
         NSEvent.addGlobalMonitorForEventsMatchingMask_handler_(NSKeyDownMask, handler)
 
 cmd = "osascript -e 'tell application \"System Events\" to key code %s'"
+clear = False
 topLeftCenterx = 159
 topLeftCentery = 82
 squareWidth = 36
@@ -58,7 +59,7 @@ squareColor = (254, 216, 58)
 zColor = (254, 66, 91)
 lColor = (254, 155, 34)
 eyeColor = (43, 208, 254)
-delay = 0.035
+delay = 0.3
 sp = ScreenPixel()
 region = CG.CGRectMake(242, 440, 400, 400)
 orange = [2, 4, 4, 1, 2, 4, 2]
@@ -81,17 +82,17 @@ def getPiece(rgb):
 	colors[6] = norm(eyeColor, rgb)
 	return colors.index(min(colors))
 
-def calculateScore(colSums):
+def calculateScore(colHeights):
 	"""calculate score here
 		factors:
 		1) bumpiness
 	"""
 	sum = 0
 	for i in range(1, 10):
-		sum += (colSums[i] - colSums[i - 1]) ** 2
+		sum += (colHeights[i] - colHeights[i - 1]) ** 2
 	return sum
 
-def scoreBoard(piece, pos, orient, colSums):
+def scoreBoard(piece, pos, orient, colHeights):
 	"""orient:
 		0 for original
 		1 for 90 clockwise (press up)
@@ -100,135 +101,247 @@ def scoreBoard(piece, pos, orient, colSums):
 	"""
 	if piece == 0:
 		if orient == 0:
-			if colSums[pos] != colSums[pos + 1] or colSums[pos] != colSums[pos + 2] - 1:
+			if colHeights[pos] != colHeights[pos + 1] or colHeights[pos] != colHeights[pos + 2] - 1:
 				return sys.maxint
-			colSums[pos] += 1
-			colSums[pos + 1] += 2
-			colSums[pos + 2] += 1
+			colHeights[pos] += 1
+			colHeights[pos + 1] += 2
+			colHeights[pos + 2] += 1
 		elif orient == 1:
-			if colSums[pos] != colSums[pos + 1] + 1:
+			if colHeights[pos] != colHeights[pos + 1] + 1:
 				return sys.maxint
-			colSums[pos] += 2
-			colSums[pos + 1] += 2
+			colHeights[pos] += 2
+			colHeights[pos + 1] += 2
 	elif piece == 1:
 		if orient == 0:
-			if colSums[pos] != colSums[pos + 1] or colSums[pos] != colSums[pos + 2]:
+			if colHeights[pos] != colHeights[pos + 1] or colHeights[pos] != colHeights[pos + 2]:
 				return sys.maxint
-			colSums[pos] += 1
-			colSums[pos + 1] += 2
-			colSums[pos + 2] += 1
+			colHeights[pos] += 1
+			colHeights[pos + 1] += 2
+			colHeights[pos + 2] += 1
 		elif orient == 1:
-			if colSums[pos] != colSums[pos + 1] - 1:
+			if colHeights[pos] != colHeights[pos + 1] - 1:
 				return sys.maxint
-			colSums[pos] += 3
-			colSums[pos + 1] += 1
+			colHeights[pos] += 3
+			colHeights[pos + 1] += 1
 		elif orient == 2:
-			if colSums[pos] != colSums[pos + 2] or colSums[pos] != colSums[pos + 1] + 1:
+			if colHeights[pos] != colHeights[pos + 2] or colHeights[pos] != colHeights[pos + 1] + 1:
 				return sys.maxint
-			colSums[pos] += 1
-			colSums[pos + 1] += 2
-			colSums[pos + 2] += 1
+			colHeights[pos] += 1
+			colHeights[pos + 1] += 2
+			colHeights[pos + 2] += 1
 		elif orient == 3:
-			if colSums[pos] != colSums[pos + 1] + 1:
+			if colHeights[pos] != colHeights[pos + 1] + 1:
 				return sys.maxint
-			colSums[pos] += 1
-			colSums[pos + 1] += 3
+			colHeights[pos] += 1
+			colHeights[pos + 1] += 3
 	elif piece == 2:
 		if orient == 0:
-			if colSums[pos] != colSums[pos + 1] or colSums[pos] != colSums[pos + 2]:
+			if colHeights[pos] != colHeights[pos + 1] or colHeights[pos] != colHeights[pos + 2]:
 				return sys.maxint
-			colSums[pos] += 2
-			colSums[pos + 1] += 1
-			colSums[pos + 2] += 1
+			colHeights[pos] += 2
+			colHeights[pos + 1] += 1
+			colHeights[pos + 2] += 1
 		elif orient == 1:
-			if colSums[pos] != colSums[pos + 1] - 2:
+			if colHeights[pos] != colHeights[pos + 1] - 2:
 				return sys.maxint
-			colSums[pos] += 3
-			colSums[pos + 1] += 1
+			colHeights[pos] += 3
+			colHeights[pos + 1] += 1
 		elif orient == 2:
-			if colSums[pos] != colSums[pos + 1] or colSums[pos] != colSums[pos + 2] + 1:
+			if colHeights[pos] != colHeights[pos + 1] or colHeights[pos] != colHeights[pos + 2] + 1:
 				return sys.maxint
-			colSums[pos] += 1
-			colSums[pos + 1] += 1
-			colSums[pos + 2] += 2
+			colHeights[pos] += 1
+			colHeights[pos + 1] += 1
+			colHeights[pos + 2] += 2
 		elif orient == 3:
-			if colSums[pos] != colSums[pos + 1]:
+			if colHeights[pos] != colHeights[pos + 1]:
 				return sys.maxint
-			colSums[pos] += 1
-			colSums[pos + 1] += 3
+			colHeights[pos] += 1
+			colHeights[pos + 1] += 3
 	elif piece == 3:
-		if colSums[pos] != colSums[pos + 1]:
+		if colHeights[pos] != colHeights[pos + 1]:
 			return sys.maxint
-		colSums[pos] += 2
-		colSums[pos + 1] += 2
+		colHeights[pos] += 2
+		colHeights[pos + 1] += 2
 	elif piece == 4:
 		if orient == 0:
-			if colSums[pos] != colSums[pos + 1] + 1 or colSums[pos] != colSums[pos + 2] + 1:
+			if colHeights[pos] != colHeights[pos + 1] + 1 or colHeights[pos] != colHeights[pos + 2] + 1:
 				return sys.maxint
-			colSums[pos] += 1
-			colSums[pos + 1] += 2
-			colSums[pos + 2] += 1
+			colHeights[pos] += 1
+			colHeights[pos + 1] += 2
+			colHeights[pos + 2] += 1
 		elif orient == 1:
-			if colSums[pos] != colSums[pos + 1] - 1:
+			if colHeights[pos] != colHeights[pos + 1] - 1:
 				return sys.maxint
-			colSums[pos] += 2
-			colSums[pos + 1] += 2
+			colHeights[pos] += 2
+			colHeights[pos + 1] += 2
 	elif piece == 5:
 		if orient == 0:
-			if colSums[pos] != colSums[pos + 1] or colSums[pos] != colSums[pos + 2]:
+			if colHeights[pos] != colHeights[pos + 1] or colHeights[pos] != colHeights[pos + 2]:
                         	return sys.maxint
-			colSums[pos] += 1
-			colSums[pos + 1] += 1
-			colSums[pos + 2] += 2
+			colHeights[pos] += 1
+			colHeights[pos + 1] += 1
+			colHeights[pos + 2] += 2
 		elif orient == 1:
-			if colSums[pos] != colSums[pos + 1]:
+			if colHeights[pos] != colHeights[pos + 1]:
                         	return sys.maxint
-			colSums[pos] += 3
-			colSums[pos + 1] += 1
+			colHeights[pos] += 3
+			colHeights[pos + 1] += 1
 		elif orient == 2:
-			if colSums[pos] != colSums[pos + 1] - 1 or colSums[pos] != colSums[pos + 2] - 1:
+			if colHeights[pos] != colHeights[pos + 1] - 1 or colHeights[pos] != colHeights[pos + 2] - 1:
                         	return sys.maxint
-			colSums[pos] += 2
-			colSums[pos + 1] += 1
-			colSums[pos + 2] += 1
+			colHeights[pos] += 2
+			colHeights[pos + 1] += 1
+			colHeights[pos + 2] += 1
 		elif orient == 3:
-			if colSums[pos] != colSums[pos + 1] + 2:
+			if colHeights[pos] != colHeights[pos + 1] + 2:
                        		return sys.maxint
-			colSums[pos] += 1
-			colSums[pos + 1] += 3
+			colHeights[pos] += 1
+			colHeights[pos + 1] += 3
 	elif piece == 6:
 		if orient == 0:
-			if colSums[pos] != colSums[pos + 1] or colSums[pos] != colSums[pos + 2] or colSums[pos] != colSums[pos + 3]:
+			if colHeights[pos] != colHeights[pos + 1] or colHeights[pos] != colHeights[pos + 2] or colHeights[pos] != colHeights[pos + 3]:
 				return sys.maxint
-			colSums[pos] += 1
-			colSums[pos + 1] += 1
-			colSums[pos + 2] += 1
-			colSums[pos + 3] += 1
+			colHeights[pos] += 1
+			colHeights[pos + 1] += 1
+			colHeights[pos + 2] += 1
+			colHeights[pos + 3] += 1
 		elif orient == 1:
-			colSums[pos] += 4
+			colHeights[pos] += 4
 	
-	return calculateScore(colSums)
+	return calculateScore(colHeights)
+
+def placePiece(piece, pos, orient, colHeights, grid):
 	
-def calculateBestPlacement(piece, nextPiece, colSums):
+	if piece == 0:
+		if orient == 0:
+			grid[pos][colHeights[pos]] = True
+			grid[pos + 1][colHeights[pos + 1]] = True
+			grid[pos + 1][colHeights[pos + 1] + 1] = True
+			grid[pos + 2][colHeights[pos + 2]] = True
+		elif orient == 1:
+			grid[pos][colHeights[pos]] = True
+			grid[pos][colHeights[pos] + 1] = True
+			grid[pos + 1][colHeights[pos + 1]] = True
+			grid[pos + 1][colHeights[pos + 1] + 1] = True
+	elif piece == 1:
+		if orient == 0:
+			grid[pos][colHeights[pos]] = True
+			grid[pos + 1][colHeights[pos + 1]] = True
+			grid[pos + 1][colHeights[pos + 1] + 1] = True
+			grid[pos + 2][colHeights[pos + 2]] = True
+		elif orient == 1:
+			grid[pos][colHeights[pos]] = True
+			grid[pos][colHeights[pos] + 1] = True
+			grid[pos][colHeights[pos] + 2] = True
+			grid[pos + 1][colHeights[pos + 1]] = True
+		elif orient == 2:
+			grid[pos][colHeights[pos]] = True
+			grid[pos + 1][colHeights[pos + 1]] = True
+			grid[pos + 1][colHeights[pos + 1] + 1] = True
+			grid[pos + 2][colHeights[pos + 2]] = True
+		elif orient == 3:
+			grid[pos][colHeights[pos]] = True
+			grid[pos + 1][colHeights[pos + 1]] = True
+			grid[pos + 1][colHeights[pos + 1] + 1] = True
+			grid[pos + 1][colHeights[pos + 1] + 2] = True
+	elif piece == 2:
+		if orient == 0:
+			grid[pos][colHeights[pos]] = True
+			grid[pos][colHeights[pos] + 1] = True
+			grid[pos + 1][colHeights[pos + 1]] = True
+			grid[pos + 2][colHeights[pos + 2]] = True
+		elif orient == 1:
+			grid[pos][colHeights[pos]] = True
+			grid[pos][colHeights[pos] + 1] = True
+			grid[pos][colHeights[pos] + 2] = True
+			grid[pos + 1][colHeights[pos + 1]] = True
+		elif orient == 2:
+			grid[pos][colHeights[pos]] = True
+			grid[pos + 1][colHeights[pos + 1]] = True
+			grid[pos + 2][colHeights[pos + 2]] = True
+			grid[pos + 2][colHeights[pos + 2] + 1] = True
+		elif orient == 3:
+			grid[pos][colHeights[pos]] = True
+			grid[pos + 1][colHeights[pos + 1]] = True
+			grid[pos + 1][colHeights[pos + 1] + 1] = True
+			grid[pos + 1][colHeights[pos + 1] + 2] = True
+	elif piece == 3:
+		grid[pos][colHeights[pos]] = True
+		grid[pos][colHeights[pos] + 1] = True
+		grid[pos + 1][colHeights[pos + 1]] = True
+		grid[pos + 1][colHeights[pos + 1] + 1] = True
+	elif piece == 4:
+		if orient == 0:
+			grid[pos][colHeights[pos]] = True
+			grid[pos + 1][colHeights[pos + 1]] = True
+			grid[pos + 1][colHeights[pos + 1] + 1] = True
+			grid[pos + 2][colHeights[pos + 2]] = True
+		elif orient == 1:
+			grid[pos][colHeights[pos]] = True
+			grid[pos][colHeights[pos] + 1] = True
+			grid[pos + 1][colHeights[pos + 1]] = True
+			grid[pos + 1][colHeights[pos + 1] + 1] = True
+	elif piece == 5:
+		if orient == 0:
+			grid[pos][colHeights[pos]] = True
+			grid[pos + 1][colHeights[pos + 1]] = True
+			grid[pos + 2][colHeights[pos + 2]] = True
+			grid[pos + 2][colHeights[pos + 2] + 1] = True
+		elif orient == 1:
+			grid[pos][colHeights[pos]] = True
+			grid[pos][colHeights[pos] + 1] = True
+			grid[pos][colHeights[pos] + 2] = True
+			grid[pos + 1][colHeights[pos + 1]] = True
+		elif orient == 2:
+			grid[pos][colHeights[pos]] = True
+			grid[pos][colHeights[pos] + 1] = True
+			grid[pos + 1][colHeights[pos + 1]] = True
+			grid[pos + 2][colHeights[pos + 2]] = True
+		elif orient == 3:
+			grid[pos][colHeights[pos]] = True
+			grid[pos + 1][colHeights[pos + 1]] = True
+			grid[pos + 1][colHeights[pos + 1] + 1] = True
+			grid[pos + 1][colHeights[pos + 1] + 2] = True
+	elif piece == 6:
+		if orient == 0:
+			grid[pos][colHeights[pos]] = True
+			grid[pos + 1][colHeights[pos + 1]] = True
+			grid[pos + 2][colHeights[pos + 2]] = True
+			grid[pos + 3][colHeights[pos + 3]] = True
+		elif orient == 1:
+			grid[pos][colHeights[pos]] = True
+			grid[pos][colHeights[pos] + 1] = True
+			grid[pos][colHeights[pos] + 2] = True
+			grid[pos][colHeights[pos] + 3] = True
+	
+def calculateBestPlacement(piece, nextPiece, colHeights):
 	"""for each orient
 		for each pos
 			calculate board value
 	"""
-	if piece == 6:
-		nextPiece = None
-	#colSums = [sum(grid[i]) for i in range(9)]
 	bestInfo = (0, 0, sys.maxint) # pos, orient, score
-	initialScore = calculateScore(colSums)
+	initialScore = calculateScore(colHeights)
 	for orient in range(orange[piece]):
 		for pos in range(prange[piece][orient % 2]):
-			temp = [colSums[i] for i in range(10)]
-			currScore = scoreBoard(piece, pos, orient, temp)
+			tempColHeights = [colHeights[i] for i in range(10)]
+			currScore = scoreBoard(piece, pos, orient, tempColHeights)
 			if currScore != sys.maxint and nextPiece != None:
-				nextInfo = calculateBestPlacement(nextPiece, None, temp)
+				nextInfo = calculateBestPlacement(nextPiece, None, tempColHeights)
 				currScore = nextInfo[2]
 			if currScore < bestInfo[2]:
 				bestInfo = (pos, orient, currScore)
 	return bestInfo
+
+def lineCleared(grid):
+	cleared = False
+	for j in range(20):
+		line = True
+		for i in range(10):
+			line = line and grid[i][j]
+		if line:
+			cleared = True
+			break
+	return cleared
 
 def pressNTimes(which, N):
 	kCode = 123
@@ -276,7 +389,6 @@ def executeMovement(piece, pos, orient):
 	elif pos < 0:
 		pressNTimes("left", -pos)
 	pressNTimes("space", 1)
-	sleep(0.3)
 
 def printPiece(piece):
 	if piece == 0:
@@ -302,29 +414,34 @@ def handler(event):
 			return
 	if event.type() == NSKeyDown and keycode.tostring(event.keyCode()) in string.printable:
 		if event.keyCode() == 48:
+			global delay
 			sp.capture(region=region)
 			currPiece = getPiece(sp.pixel(topLeftCenterx + 4 * squareWidth, topLeftCentery))
 			holdPiece = None
 			isFirstHold = True
-			for x in range(100):
-				colSums = [0 for i in range(10)]
+			while(1):
+				colHeights = [0 for i in range(10)]
+				grid = [[0 for i in range(23)] for i in range(10)]
 				for i in range(10):
 					centerx = topLeftCenterx + i * squareWidth
 					for j in range(1, 20):
 						centery = topLeftCentery + j * squareWidth
 						if(not(isEmpty(sp.pixel(centerx, centery)))):
-							colSums[i] = 20 - j
-							break
+							grid[i][19 - j] = True
+							if colHeights[i] == 0:
+								colHeights[i] = 20 - j
 				nextPiece = getPiece(sp.pixel(nextBoxx, nextBoxy))
 				if isFirstHold:
 					holdPiece = nextPiece
-				currMovementInfo = calculateBestPlacement(currPiece, nextPiece, colSums)
+				currMovementInfo = calculateBestPlacement(currPiece, nextPiece, colHeights)
 				holdMovementInfo = None
 				if isFirstHold:
-					holdMovementInfo = calculateBestPlacement(holdPiece, None, colSums)
+					holdMovementInfo = calculateBestPlacement(holdPiece, None, colHeights)
 				else:
-					holdMovementInfo = calculateBestPlacement(holdPiece, nextPiece, colSums)
+					holdMovementInfo = calculateBestPlacement(holdPiece, nextPiece, colHeights)
+				
 				if currMovementInfo[2] <= holdMovementInfo[2]:
+					placePiece(currPiece, currMovementInfo[0], currMovementInfo[1], colHeights, grid)
 					executeMovement(currPiece, currMovementInfo[0], currMovementInfo[1])
 				else:
 					pressNTimes("c", 1)
@@ -333,8 +450,13 @@ def handler(event):
 						sp.capture(region=region)
 						nextPiece = getPiece(sp.pixel(nextBoxx, nextBoxy))
 						isFirstHold = False
+					placePiece(holdPiece, holdMovementInfo[0], holdMovementInfo[1], colHeights, grid)
 					executeMovement(holdPiece, holdMovementInfo[0], holdMovementInfo[1])
 					holdPiece = currPiece
+				if lineCleared(grid):
+					sleep(0.3)
+				else:
+					sleep(0.07)
 				sp.capture(region=region)
 				currPiece = nextPiece
 
